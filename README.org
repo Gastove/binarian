@@ -1,0 +1,9 @@
+
+* Notes
+- https://msdn.microsoft.com/en-us/library/8tda2c3c(v=vs.110).aspx -- Draw
+  existing bitmap to screen
+- http://www.visualfsharp.com/graphics/introduction.htm
+- http://www.c-sharpcorner.com/UploadFile/f50501/drawpolygon-and-drawellipse-in-fsharp/
+- http://www.visualfsharp.com/graphics/drawing.htm
+- http://www.fssnip.net/sn
+- https://infsharpmajor.wordpress.com/2013/07/03/going-artistic-with-fsharp-charting/
