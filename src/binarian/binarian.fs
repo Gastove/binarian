@@ -5,7 +5,7 @@ open System.Drawing
 let binarateInt (i: int) =
     System.Convert.ToString(i, 2)
 
-let binarateStr (s: string) =
+let binarateStr (s: string) rowLength =
     s
     |> Seq.map (int >> binarateInt)
     |> System.String.Concat
@@ -18,15 +18,17 @@ let binarate strArray =
     |> System.String.Concat
 
 
-let binarateFile path =
+let binarateFile path rowLength =
     System.IO.File.ReadAllLines(path)
-    |> Seq.map binarateStr
+    |> Seq.collect (fun line -> binarateStr line rowLength)
+    |> (fun ints -> Seq.chunkBySize rowLength ints)
 
 [<EntryPoint>]
 let main argv =
+    let rowLength = 110
     let poemPath = @"/Users/gastove/Documents/bonne_journee.txt"
     let imagePath = @"/Users/gastove/Pictures/bonne_journee.png"
-    let binaryPoem = binarateFile poemPath
+    let binaryPoem = binarateFile poemPath rowLength
 
     let border = 10
     let cellSize = 25

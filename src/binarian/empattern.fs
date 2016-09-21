@@ -48,17 +48,110 @@ let calculateGrid colorCoding cellSize border gridLineWidth =
 
     (heightPixels, widthPixels)
 
+let loadFont =
+    let font = new Font("Times New Roman", 12.0f)
+    font
+
+let rectToRectF (rect: Rectangle) =
+    let p = rect.Location
+    let xF = float32 p.X
+    let yF = float32 p.Y
+    let sideF = float32 rect.Width
+
+    RectangleF(xF, yF, sideF, sideF)
+
+let drawYLabels (gfx: Graphics) xPos yOrigin yMax step cellSize gridLineWidth =
+    let pen = Pens.Black
+    let brush = Brushes.Black
+    let font = loadFont
+    let points =
+        [(yOrigin + gridLineWidth) .. step .. yMax]
+        |> List.map (fun y -> Point(xPos, y))
+
+    let size = Size(cellSize, cellSize)
+    let sizeF = SizeF(float32 cellSize, float32 cellSize)
+
+    let mutable rect = new Rectangle(Point(0, 0), size)
+    let mutable rectF = new RectangleF(PointF(0.0f, 0.0f), sizeF)
+
+    let mutable labelCounter = 1
+    let mutable label = ""
+
+    for point in points do
+        rect.Location <- point
+        rectF <- rectToRectF rect
+        label <- string labelCounter
+        gfx.DrawRectangle(pen, rect)
+        gfx.DrawString(label, font, brush, rectF)
+
+        labelCounter <- labelCounter + 1
+
+let drawXLabels (gfx: Graphics) yPos xOrigin xMax step cellSize gridLineWidth =
+    let pen = Pens.Black
+    let brush = Brushes.Black
+    let font = loadFont
+    let points =
+        [(xOrigin + gridLineWidth) .. step .. xMax]
+        |> List.map (fun x -> Point(x, yPos))
+
+    let size = Size(cellSize, cellSize)
+    let sizeF = SizeF(float32 cellSize, float32 cellSize)
+
+    let mutable rect = new Rectangle(Point(0, 0), size)
+    let mutable rectF = new RectangleF(PointF(0.0f, 0.0f), sizeF)
+
+    let mutable labelCounter = 1
+    let mutable label = ""
+
+    for point in points do
+        rect.Location <- point
+        rectF <- rectToRectF rect
+        label <- string labelCounter
+        gfx.DrawRectangle(pen, rect)
+        gfx.DrawString(label, font, brush, rectF)
+
+        labelCounter <- labelCounter + 1
+
+let drawCheckerboard (gfx: Graphics) colorCoding xOffset yOffset (cellSize: int)
+    gridLineWidth zeroColor oneColor =
+
+    let binaryToSquareColor = makeBinaryToSquareColor zeroColor oneColor
+
+    let xOrigin = xOffset + gridLineWidth
+    let yOrigin = yOffset + gridLineWidth
+
+    let mutable x = xOrigin
+    let mutable y = yOrigin
+
+    let step = cellSize + gridLineWidth
+
+    let brush = new SolidBrush(zeroColor)
+
+    for cellRow in colorCoding do
+        for cellColor in cellRow do
+            brush.Color <- binaryToSquareColor cellColor
+            gfx.FillRectangle(brush, x, y, cellSize, cellSize)
+            x <- x + step
+
+        y <- y + step
+        x <- xOrigin
+    ()
+
+
 let drawPattern fileName colorCoding border cellSize gridLineWidth
     (backgroundColor: Color) (gridLineColor: Color) (zeroColor: Color)
     (oneColor: Color) =
 
-    let binaryToSquareColor = makeBinaryToSquareColor zeroColor oneColor
-
     let (gridHeight, gridWidth) = calculateGrid colorCoding cellSize border gridLineWidth
     printfn "Grid height: %A, grid width: %A" gridHeight gridWidth
 
-    let imgHeight = gridHeight + (2 * border)
-    let imgWidth = gridWidth + (2 * border)
+    let imgHeight = gridHeight + (3 * border) + cellSize
+    let imgWidth = gridWidth + (3 * border) + cellSize
+
+    // Used a lot of places
+    let step = cellSize + gridLineWidth
+    let xOffset = ((2 * border) + cellSize)
+    let yOffset = border
 
     let pen = new Pen(gridLineColor)
     pen.Width <- float32 gridLineWidth
@@ -68,22 +161,13 @@ let drawPattern fileName colorCoding border cellSize gridLineWidth
 
     gfx.Clear(backgroundColor)
 
-    let mutable x = border + gridLineWidth
-    let mutable y = border + gridLineWidth
-    let brush = new SolidBrush(zeroColor)
+    drawYLabels gfx border border gridHeight step cellSize gridLineWidth
+    drawXLabels gfx (gridHeight + (2 * border)) xOffset (gridWidth + step) step cellSize gridLineWidth
 
-    // TODO refactor into own function
-    for cellRow in colorCoding do
-        for cellColor in cellRow do
-            brush.Color <- binaryToSquareColor cellColor
-            gfx.FillRectangle(brush, x, y, cellSize, cellSize)
-            x <- x + cellSize + gridLineWidth
+    drawCheckerboard gfx colorCoding xOffset yOffset cellSize gridLineWidth zeroColor oneColor
 
-        y <- y + cellSize + gridLineWidth
-        x <- border + gridLineWidth
-
-    let latCoords = makeLatCoords border (gridHeight + border) (cellSize +  gridLineWidth) border (gridWidth + border - gridLineWidth)
-    let longCoords = makeLongCoords border (gridWidth + border) (cellSize + gridLineWidth) border (gridHeight + border - gridLineWidth)
+    let latCoords = makeLatCoords yOffset (gridHeight + border + yOffset) step xOffset (xOffset + gridWidth - gridLineWidth)
+    let longCoords = makeLongCoords xOffset (gridWidth + xOffset) step border (gridHeight + border - gridLineWidth)
 
     List.map (fun (a, b) -> drawLine gfx pen a b) latCoords |> ignore
     List.map (fun (a, b) -> drawLine gfx pen a b) longCoords |> ignore
